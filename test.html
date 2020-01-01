@@ -1,0 +1,210 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://cdn.bootcss.com/lodash.js/4.17.15/lodash.js"></script>
+</head>
+<body>
+    
+</body>
+<script>
+    class Map {
+	constructor() {
+		this.init()
+	}
+	init() {
+        let _x = 30
+        let _y = 30
+        let startX = _.random(0,_x)
+        let startY = _.random(0,_y)
+
+        this._map = this._gen2Array(_x,_y) //矩阵大小
+        this.goodList = []
+		this._head_chunk = {
+			posX: startX,
+			posY: startY,
+			val: {
+			},
+			top: null,
+			right: null,
+			bottom: null,
+			left: null,
+			pre: null
+		}
+		let _rand = this._random(1, 4)
+		this._map[startX][startY] = '★'
+		this._chunk_amount = 450; // 走几步
+		this._cur_num = 1
+		this._cur_chunk = this._head_chunk
+		this._pre_chunk = null
+		this._handle_list = []
+		this._idx = []
+		switch (_rand) {
+			case 1:
+				this._head_chunk.top = {}
+				break;
+			case 2:
+				this._head_chunk.right = {}
+				break;
+			case 3:    
+				this._head_chunk.bottom = {}
+				break;
+			case 4:
+				this._head_chunk.left = {}
+				break;
+			default:
+				break;
+		}
+		this.chunkTransfer(this._head_chunk)
+		console.log(this._map)
+		console.log(this._head_chunk)
+	}
+	chunkTransfer(chunk) {
+		let _dirs = ['top', 'right', 'bottom', 'left']
+		for (let i of _dirs) {
+			if (chunk[i] !== null) {
+				this._handle_list.push(chunk[i])
+			}
+		}
+        this._idx = this._genDirection(chunk)
+        if (_.size(this._idx) >= 2) {
+            let _head = {
+                posX: chunk.posX,
+                posY: chunk.posY,
+                top:null,
+                right: null,
+                left:null,
+                bottom:null,
+                pre: null
+            }
+            this.goodList.push(_head)
+        }
+        if (_.size(this._idx) == 0) {
+            // console.log(111)
+            // console.log(_.cloneDeep(this.goodList))
+            let _max = []
+            _max = _.filter(this.goodList, i=> {
+                // console.log(_.size(this._genDirection(i)))   
+                return (_.size(this._genDirection(i)) >= 3)
+            })
+            // console.log(_.cloneDeep(_max))
+            if (_.size(_max) == 0) {
+                _max = _.filter(this.goodList, i=> {
+                // console.log(_.size(this._genDirection(i)))   
+                return (_.size(this._genDirection(i)) >= 2)
+            })
+            }
+            // console.log(_.cloneDeep(_max))
+            this.goodList = _max
+            if (_.size(this.goodList) == 0)  return
+            let _newHead = _.sample(this.goodList)
+            // console.log(_newHead)
+            // let _newHead = {
+            //     posX: 10,
+            //     posY: 10,
+            //     val: {
+            //     },
+            //     top: null,
+            //     right: null,
+            //     bottom: null,
+            //     left: null,
+            //     pre: null
+            // }
+            this._idx = this._genDirection(_newHead)
+            if (_.size(this._idx) == 0) return
+            let _amount = this._random(0, this._idx.length - 1)
+            let dir = this._idx[_amount]
+            _newHead[dir] = {}
+            this._cur_chunk = _newHead
+            this.chunkTransfer(_newHead)
+        } else {
+            this.listTransfer(this._handle_list)
+        }
+		
+	}
+	listTransfer(list) {
+		list.forEach(i => {
+			this._cur_num += 1
+			this._chunk_amount -= 1
+			this._handle_list.shift()
+			i.pre = this._cur_chunk
+			i.top = null
+			i.right = null
+			i.bottom = null
+			i.left = null
+			this._cur_chunk = i
+			if (this._chunk_amount > 0) {
+				let _amount = this._random(0, this._idx.length - 1)
+				let dir = this._idx[_amount]
+				// console.log(dir)
+				if (dir) {
+					i[dir] = {}
+					let {posX, posY} = this._calPos(i.pre.posX, i.pre.posY, dir)
+					// console.log(i.pre.posX,i.pre.posY, posX,posY, dir ,this._idx)
+					i.posX = posX
+					i.posY = posY
+                    // this._map[posX][posY] = this._cur_num < 10 ? `00${this._cur_num}`:
+                    //                                         this._cur_num < 100 ? `0${this._cur_num}` : `${this._cur_num}`
+                    this._map[posX][posY] = '■'
+					// console.log(this._idx)
+					// console.log(posX, posY, dir)
+				}
+				this.chunkTransfer(i)
+			}
+		})
+	}
+	_calPos(preX, preY, dir) {
+		if (dir === 'top') {
+			return {posX: preX, posY: preY - 1}
+		} else if (dir === 'right') {
+			return {posX: preX + 1, posY: preY}
+		}	else if (dir === 'bottom') {
+			return {posX: preX, posY: preY + 1}
+		} else if (dir === 'left') {
+			return {posX: preX - 1, posY: preY}
+		} else {
+			return null
+		}
+	}
+	_genDirection (chunk) {
+		let _dir = []
+		let vecX = _.get(this._map, chunk.posX, [])
+		let vecXLeft = _.get(this._map, chunk.posX - 1, [])
+		let vecXRight = _.get(this._map, chunk.posX + 1, [])
+		// console.log(vecX[chunk.posY - 1])
+		// console.log(vecX[chunk.posY + 1])
+		// console.log(vecXLeft)
+		// console.log(vecXRight)
+		if (vecX[chunk.posY - 1] === '□') {
+			_dir.push('top')
+		}
+		if (vecX[chunk.posY + 1] === '□') {
+			_dir.push('bottom')
+		}
+		if (vecXLeft[chunk.posY] === '□') {
+			_dir.push('left')
+		}
+		if (vecXRight[chunk.posY] === '□') {
+			_dir.push('right')
+		}
+		return _dir
+	}
+	_gen2Array (x, y) {
+		let arr = []
+		for (let i = 0; i < y; i++) {
+			arr.push([])
+			for (let j = 0; j< x; j++) {
+				arr[i][j] = '□'
+			}
+		}
+		return arr
+	}
+	_random(low, high) {
+		return _.random(low, high)
+	}
+}
+let _map = new Map()
+</script>
+</html>
